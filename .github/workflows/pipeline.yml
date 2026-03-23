@@ -9,7 +9,6 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-
     env:
       MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
 
@@ -28,10 +27,12 @@ jobs:
           pip install -r requirements.txt
 
       - name: Pull data with DVC
-        run: dvc pull || echo "No DVC remote configured, skipping pull"
+        run: |
+          dvc pull || echo "No DVC remote configured, skipping pull"
 
       - name: Train model and log to MLflow
-        run: python train.py
+        run: |
+          python train.py
 
       - name: Upload model info artifact
         uses: actions/upload-artifact@v4
@@ -48,7 +49,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: validate
-
     env:
       MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
 
@@ -78,7 +78,9 @@ jobs:
           path: mlruns
 
       - name: Check accuracy threshold
-        run: python check_threshold.py
+        run: |
+          python check_threshold.py
 
       - name: Mock Docker build
-        run: echo "Building Docker image for Run ID: $(cat model_info.txt)"
+        run: |
+          echo "Building Docker image for Run ID: $(cat model_info.txt)"
