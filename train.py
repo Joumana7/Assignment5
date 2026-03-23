@@ -22,8 +22,8 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 with mlflow.start_run() as run:
     model = RandomForestClassifier(
-        n_estimators=300,
-        max_depth=None,
+        n_estimators=1,
+        max_depth=1,
         random_state=42
     )
     model.fit(X_train, y_train)
@@ -31,8 +31,8 @@ with mlflow.start_run() as run:
     predictions = model.predict(X_test)
     accuracy = accuracy_score(y_test, predictions)
 
-    mlflow.log_param("n_estimators", 300)
-    mlflow.log_param("max_depth", "None")
+    mlflow.log_param("n_estimators", 1)
+    mlflow.log_param("max_depth", 1)
     mlflow.log_metric("accuracy", float(accuracy))
     mlflow.sklearn.log_model(model, "model")
 
