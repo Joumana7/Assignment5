@@ -1,16 +1,16 @@
-name: ML Pipeline
+name: ML Validation and Deployment Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
   validate:
+    name: Validate Model
     runs-on: ubuntu-latest
     env:
-      MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+      MLFLOW_TRACKING_URI: file:./mlruns
 
     steps:
       - name: Checkout repository
@@ -26,7 +26,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Pull data with DVC
+      - name: Pull training data via DVC
         run: |
           dvc pull || echo "No DVC remote configured, skipping pull"
 
@@ -34,23 +34,26 @@ jobs:
         run: |
           python train.py
 
-      - name: Upload model info artifact
+      - name: Upload model_info.txt artifact
         uses: actions/upload-artifact@v4
         with:
           name: model-info
           path: model_info.txt
+          if-no-files-found: error
 
       - name: Upload MLflow runs artifact
         uses: actions/upload-artifact@v4
         with:
           name: mlruns
           path: mlruns
+          if-no-files-found: error
 
   deploy:
+    name: Deploy Model
     runs-on: ubuntu-latest
     needs: validate
     env:
-      MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+      MLFLOW_TRACKING_URI: file:./mlruns
 
     steps:
       - name: Checkout repository
@@ -66,7 +69,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Download model info artifact
+      - name: Download model_info.txt artifact
         uses: actions/download-artifact@v4
         with:
           name: model-info
