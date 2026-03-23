@@ -1,51 +1,29 @@
 import os
+import sys
 import mlflow
-import mlflow.sklearn
-from sklearn.datasets import load_wine
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
 
-# MLflow setup
-tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "file:./mlruns")
+THRESHOLD = 0.85
+
+tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
 mlflow.set_tracking_uri(tracking_uri)
-mlflow.set_experiment("assignment5-classifier")
 
-# Load data
-X, y = load_wine(return_X_y=True)
+with open("model_info.txt", "r") as f:
+    run_id = f.read().strip()
 
-# Stratified split for more stable accuracy
-X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.2,
-    random_state=42,
-    stratify=y,
-)
+run = mlflow.get_run(run_id)
+accuracy = run.data.metrics.get("accuracy")
 
-# Train and log
-with mlflow.start_run() as run:
-    model = RandomForestClassifier(
-        n_estimators=300,
-        max_depth=None,
-        random_state=42,
-    )
-    model.fit(X_train, y_train)
+print(f"Using threshold: {THRESHOLD}")
+print(f"Model accuracy: {accuracy}")
 
-    predictions = model.predict(X_test)
-    accuracy = accuracy_score(y_test, predictions)
+if accuracy is None:
+    print("ERROR: Accuracy not found in MLflow run.")
+    sys.exit(1)
 
-    mlflow.log_param("n_estimators", 300)
-    mlflow.log_param("max_depth", "None")
-    mlflow.log_metric("accuracy", float(accuracy))
-    mlflow.sklearn.log_model(model, "model")
+accuracy = float(accuracy)
 
-    run_id = run.info.run_id
+if accuracy < THRESHOLD:
+    print(f"Deployment blocked. Accuracy {accuracy} is below threshold {THRESHOLD}.")
+    sys.exit(1)
 
-    print(f"Run ID: {run_id}")
-    print(f"Accuracy: {accuracy:.4f}")
-
-    with open("model_info.txt", "w") as f:
-        f.write(run_id)
-
-print("Training complete. model_info.txt written.")
+print("Threshold check passed. Proceeding to deployment.")
