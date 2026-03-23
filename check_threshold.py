@@ -4,26 +4,45 @@ import mlflow
 
 THRESHOLD = 0.85
 
-tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
-mlflow.set_tracking_uri(tracking_uri)
+def main():
+    try:
+        with open("model_info.txt", "r") as f:
+            run_id = f.read().strip()
+    except FileNotFoundError:
+        print("ERROR: model_info.txt not found.")
+        sys.exit(1)
 
-with open("model_info.txt", "r") as f:
-    run_id = f.read().strip()
+    if not run_id:
+        print("ERROR: Run ID is empty.")
+        sys.exit(1)
 
-run = mlflow.get_run(run_id)
-accuracy = run.data.metrics.get("accuracy")
+    tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "file:./mlruns")
+    mlflow.set_tracking_uri(tracking_uri)
 
-print(f"Using threshold: {THRESHOLD}")
-print(f"Model accuracy: {accuracy}")
+    try:
+        run = mlflow.get_run(run_id)
+    except Exception as e:
+        print(f"ERROR: Could not retrieve run '{run_id}': {e}")
+        sys.exit(1)
 
-if accuracy is None:
-    print("ERROR: Accuracy not found in MLflow run.")
-    sys.exit(1)
+    accuracy = run.data.metrics.get("accuracy")
 
-accuracy = float(accuracy)
+    print(f"Using threshold: {THRESHOLD}")
+    print(f"Run ID: {run_id}")
+    print(f"Model accuracy: {accuracy}")
 
-if accuracy < THRESHOLD:
-    print(f"Deployment blocked. Accuracy {accuracy} is below threshold {THRESHOLD}.")
-    sys.exit(1)
+    if accuracy is None:
+        print("ERROR: No 'accuracy' metric found.")
+        sys.exit(1)
 
-print("Threshold check passed. Proceeding to deployment.")
+    accuracy = float(accuracy)
+
+    if accuracy < THRESHOLD:
+        print(f"FAIL: Accuracy {accuracy:.4f} is below threshold {THRESHOLD}. Blocking deployment.")
+        sys.exit(1)
+
+    print(f"PASS: Accuracy {accuracy:.4f} meets the threshold. Proceeding to deployment.")
+    sys.exit(0)
+
+if __name__ == "__main__":
+    main()
