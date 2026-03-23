@@ -34,6 +34,19 @@ jobs:
         run: |
           python train.py
 
+      - name: Show generated files
+        run: |
+          echo "Contents of workspace:"
+          ls -la
+          echo "Contents of mlruns:"
+          ls -R mlruns || true
+          echo "Run ID file:"
+          cat model_info.txt
+
+      - name: Archive MLflow runs
+        run: |
+          tar -czf mlruns.tar.gz mlruns
+
       - name: Upload model_info.txt artifact
         uses: actions/upload-artifact@v4
         with:
@@ -41,11 +54,11 @@ jobs:
           path: model_info.txt
           if-no-files-found: error
 
-      - name: Upload MLflow runs artifact
+      - name: Upload archived MLflow runs artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mlruns
-          path: mlruns
+          name: mlruns-archive
+          path: mlruns.tar.gz
           if-no-files-found: error
 
   deploy:
@@ -73,12 +86,23 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: model-info
+          path: .
 
-      - name: Download MLflow runs artifact
+      - name: Download archived MLflow runs artifact
         uses: actions/download-artifact@v4
         with:
-          name: mlruns
-          path: mlruns
+          name: mlruns-archive
+          path: .
+
+      - name: Extract MLflow runs
+        run: |
+          tar -xzf mlruns.tar.gz
+          echo "Workspace after extracting mlruns:"
+          ls -la
+          echo "Contents of mlruns:"
+          ls -R mlruns || true
+          echo "Run ID file:"
+          cat model_info.txt
 
       - name: Check accuracy threshold
         run: |
