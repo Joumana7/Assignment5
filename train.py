@@ -6,15 +6,11 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
-# MLflow setup
 tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "file:./mlruns")
 mlflow.set_tracking_uri(tracking_uri)
 mlflow.set_experiment("assignment5-classifier")
 
-# Load data
 X, y = load_wine(return_X_y=True)
-
-# Stratified split for more stable accuracy
 X_train, X_test, y_train, y_test = train_test_split(
     X,
     y,
@@ -23,7 +19,6 @@ X_train, X_test, y_train, y_test = train_test_split(
     stratify=y,
 )
 
-# Train and log
 with mlflow.start_run() as run:
     model = RandomForestClassifier(
         n_estimators=300,
@@ -41,7 +36,6 @@ with mlflow.start_run() as run:
     mlflow.sklearn.log_model(model, "model")
 
     run_id = run.info.run_id
-
     print(f"Run ID: {run_id}")
     print(f"Accuracy: {accuracy:.4f}")
 
