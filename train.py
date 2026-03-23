@@ -11,8 +11,10 @@ tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "file:./mlruns")
 mlflow.set_tracking_uri(tracking_uri)
 mlflow.set_experiment("assignment5-classifier")
 
-# Data
+# Load data
 X, y = load_wine(return_X_y=True)
+
+# Stratified split for more stable accuracy
 X_train, X_test, y_train, y_test = train_test_split(
     X,
     y,
@@ -24,7 +26,8 @@ X_train, X_test, y_train, y_test = train_test_split(
 # Train and log
 with mlflow.start_run() as run:
     model = RandomForestClassifier(
-        n_estimators=200,
+        n_estimators=300,
+        max_depth=None,
         random_state=42,
     )
     model.fit(X_train, y_train)
@@ -32,7 +35,8 @@ with mlflow.start_run() as run:
     predictions = model.predict(X_test)
     accuracy = accuracy_score(y_test, predictions)
 
-    mlflow.log_param("n_estimators", 200)
+    mlflow.log_param("n_estimators", 300)
+    mlflow.log_param("max_depth", "None")
     mlflow.log_metric("accuracy", float(accuracy))
     mlflow.sklearn.log_model(model, "model")
 
